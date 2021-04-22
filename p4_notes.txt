@@ -1,0 +1,5 @@
+Function names are in camelCase
+variable names are in snake_case
+
+getTokens function: 
+
