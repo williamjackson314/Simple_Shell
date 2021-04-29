@@ -10,7 +10,6 @@
 void dieWithError(char *error); 
 
 const size_t MAX_INPUT_SIZE = 256; //bytes
-
 const int MAX_NUM_VARIABLES = 10;
 
 typedef struct variable{
