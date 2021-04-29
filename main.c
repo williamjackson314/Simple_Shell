@@ -9,8 +9,9 @@
 
 void dieWithError(char *error); 
 
-const size_t MAX_INPUT_SIZE = 256; //bytes
-const int MAX_NUM_VARIABLES = 10;
+#define MAX_INPUT_SIZE 256
+#define MAX_NUM_VARIABLES 10
+#define TOKEN_STRUCT_SIZE 260
 
 typedef struct variable{
 
@@ -31,16 +32,18 @@ typedef struct token{
 token *inputScanner(char *input){
 
     char input_cpy[MAX_INPUT_SIZE];
-
     strncpy(input_cpy, input, strlen(input)+1);
-    static token tokenized_input[sizeof(token) * MAX_INPUT_SIZE];
+    
+    static token tokenized_input[TOKEN_STRUCT_SIZE * MAX_INPUT_SIZE];
 
     tokentype type;
+    tokentype prev_type;
+
     int cnt = 0;  
+
     const char *delims = " \t";
     char *token;
     char *prev_token = '\0';
-    tokentype prev_type;
 
     token = strtok(input_cpy, delims);
 
@@ -58,9 +61,6 @@ token *inputScanner(char *input){
 
             tokenized_input[cnt-1].type = prev_type; 
             strcpy(tokenized_input[cnt-1].value, prev_token);
-            
-            printf("Type: %d\n", tokenized_input[cnt-1].type);
-            printf("Value: %s\n", tokenized_input[cnt-1].value);
 
         }
         else if (strcmp(token, "cd") == 0){
@@ -82,14 +82,13 @@ token *inputScanner(char *input){
             type = OUTTO;
         }
         else {
-            prev_token = token; //may need to use memcpy here instead, be careful to make sure the token before previous is erased
+            prev_token = token;
             type = GENERAL;
         }
 
         tokenized_input[cnt].type = type;
         strcpy(tokenized_input[cnt].value, token);
-        printf("Type: %d\n", tokenized_input[cnt].type);
-        printf("Value: %s\n", tokenized_input[cnt].value);
+
         cnt += 1;
         
         token = strtok(NULL, delims);
@@ -189,13 +188,13 @@ int main(){
     DIR *directory;
     struct dirent *de;
     char *PATH = "/bin:/usr/bin";
-    char *CWD = getcwd(NULL, PATH_MAX);
+    char *CWD;
     char *PS = "> ";
     char usr_input[MAX_INPUT_SIZE];
     token *input_tokens;
     input_tokens = (token *)malloc(MAX_INPUT_SIZE * sizeof(token));
 
-    if (getcwd(CWD, PATH_MAX) == NULL) dieWithError(errno);
+    if (getcwd(CWD, PATH_MAX) == NULL) dieWithError("getcwd error");
 
     variable *dictionary;
     dictionary = (variable *)calloc(MAX_NUM_VARIABLES, sizeof(variable));
