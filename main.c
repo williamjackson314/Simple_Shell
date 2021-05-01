@@ -33,36 +33,38 @@ typedef struct token{
 token *inputScanner(char *input){
 
     char input_cpy[MAX_INPUT_SIZE];
-    strncpy(input_cpy, input, strlen(input)+1);
+    strncpy(input_cpy, input, strlen(input)+1); //strlen + 1 to encompass the null character strlen discards
     
     static token tokenized_input[TOKEN_STRUCT_SIZE * MAX_INPUT_SIZE];
 
     tokentype type;
     tokentype prev_type;
 
-    int cnt = 0;  
+    int index = 0;  
 
-    const char *delims = " \t";
+    const char *delims = " \t\n";
     char *token;
     char *prev_token = '\0';
 
     token = strtok(input_cpy, delims);
 
     while (token != NULL){
-
+        
+       
         if (strcmp(token, "#") == 0){
             type = HASH;
         }
-        if (strcmp(token, "!") == 0){
+        else if (strcmp(token, "!") == 0){
             type = BANG;
         }        
         else if (strcmp(token, "=") == 0){
             type = EQUALS;
             prev_type = VARNAME;
-
-            tokenized_input[cnt-1].type = prev_type; 
-            strcpy(tokenized_input[cnt-1].value, prev_token);
-
+            
+            if (index > 0){
+                tokenized_input[index-1].type = prev_type; 
+                strcpy(tokenized_input[index-1].value, prev_token);
+            }
         }
         else if (strcmp(token, "cd") == 0){
             type = CD;
@@ -87,14 +89,19 @@ token *inputScanner(char *input){
             type = GENERAL;
         }
 
-        tokenized_input[cnt].type = type;
-        strcpy(tokenized_input[cnt].value, token);
+        tokenized_input[index].type = type;
+        strcpy(tokenized_input[index].value, token);
 
-        cnt += 1;
-        
+        index += 1;
+
         token = strtok(NULL, delims);
+        
     } 
  
+    for (int i=0;i<index;i++){
+        printf("Type: %d\n", tokenized_input[i].type);
+        printf("Value: %s\n", tokenized_input[i].value);
+    }
     return tokenized_input;
 }
 
@@ -256,7 +263,7 @@ int main(){
     DIR *directory;
     struct dirent *de;
     char *PATH = "/usr/bin"; // in testing, /bin:/usr/bin did not exist; using path "/usr/bin" executed programs properly
-    char *CWD;
+    char *CWD = getcwd(NULL, PATH_MAX);
     char *PS = "> ";
     char usr_input[MAX_INPUT_SIZE];
     token *input_tokens;
