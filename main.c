@@ -13,6 +13,7 @@ void dieWithError(char *error);
 #define TOKEN_STRUCT_SIZE 260
 
 int available_variable_space = 10;
+int num_tokens = 0;
 
 typedef struct variable{
 
@@ -30,12 +31,20 @@ typedef struct token{
 
 } token;
 
+/**
+ * @brief Takes users input, converts it to an array of token structs,
+ *          with each token signifying its type and value
+ * 
+ * @param input
+ * @return token *, returns the tokenized array
+ */
 token *inputScanner(char *input){
 
     char input_cpy[MAX_INPUT_SIZE];
     strncpy(input_cpy, input, strlen(input)+1); //strlen + 1 to encompass the null character strlen discards
     
-    static token tokenized_input[TOKEN_STRUCT_SIZE * MAX_INPUT_SIZE];
+    static token tokenized_input[MAX_INPUT_SIZE];
+    memset(tokenized_input, 0, sizeof tokenized_input); //reset values
 
     tokentype type;
     tokentype prev_type;
@@ -50,7 +59,6 @@ token *inputScanner(char *input){
 
     while (token != NULL){
         
-       
         if (strcmp(token, "#") == 0){
             type = HASH;
         }
@@ -85,8 +93,13 @@ token *inputScanner(char *input){
             type = OUTTO;
         }
         else {
-            prev_token = token;
-            type = GENERAL;
+            if (token[0] == '$'){
+                type = VARNAME;
+            }
+            else{
+                prev_token = token;
+                type = GENERAL;
+            }
         }
 
         tokenized_input[index].type = type;
@@ -266,6 +279,7 @@ int main(){
     char *CWD = getcwd(NULL, PATH_MAX);
     char *PS = "> ";
     char usr_input[MAX_INPUT_SIZE];
+    int is_valid;
     token *input_tokens;
     input_tokens = (token *)malloc(MAX_INPUT_SIZE * sizeof(token));
 
@@ -277,7 +291,16 @@ int main(){
     for(;;){
         fgets(usr_input, MAX_INPUT_SIZE, stdin);
         input_tokens = inputScanner(usr_input);
-
+        
+        if (num_tokens > 0){
+            // is_valid = inputParser(input_tokens);
+            // if (is_valid){
+            //     //execute command
+            // }
+        }
+        else {
+            printf("Please enter a command\n");
+        }
     }
 
     free(dictionary);
