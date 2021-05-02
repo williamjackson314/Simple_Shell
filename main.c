@@ -51,7 +51,7 @@ token *inputScanner(char *input){
 
     int index = 0;  
 
-    const char *delims = " \t\n";
+    const char *delims = " \t\n\r";
     char *token;
     char *prev_token = '\0';
 
@@ -115,11 +115,112 @@ token *inputScanner(char *input){
         printf("Type: %d\n", tokenized_input[i].type);
         printf("Value: %s\n", tokenized_input[i].value);
     }
+
+    num_tokens += index; //index is incremented everytime a token is created
+
     return tokenized_input;
 }
 
-void inputParser(token scanned_input){
+/**
+ * @brief For use after the user input has been split
+ *          into tokens, checks if they syntax of input
+ *          is valid.
+ * 
+ * @param scanned_input
+ * @return int, 0 for invalid, anything else for valid 
+ */
+int inputParser(token scanned_input[]){
 
+
+    if (scanned_input[0].type == GENERAL){
+        printf("Command not found\n");
+        return 0;
+    }
+    for (int i=0;i<num_tokens;i++){
+        switch (scanned_input[i].type){
+            case HASH :
+                if (i == 0) { //if first token is # then the syntax of the other tokens doesn't matter
+                    return 1;
+                }
+                else { // '#' token anywhere other than first  position is syntax error
+                    printf("Error: '#' must be first\n");
+                    return 0;
+                }
+            case BANG :
+                if (i != 0) {  // '!' token anywhere other than first  position is syntax error
+                    printf("Error: '!' must be first\n");
+                    return 0;
+                }
+            case EQUALS : 
+                if (i == 0){
+                    return 0;
+                }
+                if (i == num_tokens-1){
+                    printf("Please enter the value of the variable\n");
+                    return 0;
+                }
+                else {
+                    if (scanned_input[i+1].type != GENERAL){
+                        printf("Invalid value\n");
+                        return 0;
+                    }
+                }
+            case CD :
+                if (num_tokens == 1){
+                    printf("Please enter a directory name\n");
+                    return 0;
+                }
+                if (i != 0){
+                    printf("Error: \"cd\" must be first");
+                    return 0;
+                }
+            case LV :
+                if (num_tokens != 1){
+                    printf("Invalid syntax: \"lv\"\n");
+                    return 0;
+                }
+            case QUIT :
+                if (num_tokens != 1){
+                    printf("Invalid syntax, could not quit\n");
+                    return 0;
+                }
+            case UNSET :
+                if ( strcmp(scanned_input[i].value, "PATH") || strcmp(scanned_input[i].value, "CWD") || strcmp(scanned_input[i].value, "PS") == 0){
+                    printf("Cannot unset built-in variable\n");
+                    return 0;
+                }
+                if ()
+            case INFROM :
+                if (i == num_tokens-1){
+                    printf("Please enter infrom file\n");
+                    return 0;
+                }
+                else {
+                    if (scanned_input[i+1].type != GENERAL){
+                        printf("Invalid file name\n");
+                        return 0;
+                    }
+                }
+            case OUTTO :
+                if (i == num_tokens-1){
+                    printf("Please enter file to redirect to\n");
+                    return 0;
+                }
+                else {
+                    if (scanned_input[i+1].type != GENERAL){
+                        printf("Invalid file name\n");
+                        return 0;
+                    }
+                }
+            case VARNAME :
+                if ((scanned_input[i].value[0] < 'A') || (scanned_input[i].value[0] > 'z') && (scanned_input[i].value[0] != '$')){
+                    printf("Invalid variable name\n");
+                    return 0;
+                }
+        }
+
+    }
+    return 1;
 }
 
 /**
