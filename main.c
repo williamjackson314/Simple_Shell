@@ -12,7 +12,7 @@ void dieWithError(char *error);
 #define MAX_INPUT_SIZE 256
 
 int available_variable_space = 10;
-int num_tokens = 0;
+int num_tokens;
 
 typedef struct variable{
 
@@ -49,11 +49,15 @@ token *inputScanner(char *input){
     tokentype prev_type;
 
     int index = 0;  
+    num_tokens = 0;
 
     const char *delims;
     char *saveptr;
     char *token;
     char *prev_token = '\0';
+
+    // if first character is space or tab, exit shell
+    if ((input_cpy[0] == ' ') || (input_cpy[0] == '\t')) dieWithError("Space/Tab may not be first character");
 
     if (input_cpy[0] == '\"'){
         delims = "\"\n\r";
@@ -113,13 +117,37 @@ token *inputScanner(char *input){
         strcpy(tokenized_input[index].value, token);
 
         index += 1;
-        
-        if (*saveptr == '\"'){
-            delims = "\"\n\r";
+
+        /* If start of next strtok_r call is a space/tab, then we check the character right after it
+            to see if it is a double quote. If so, we set that as the point where the next strtok_r call
+            will start. This is so multiple double quotes enclosed strings will both be tokenized correctly */
+        if (*saveptr == ' '){
+            if (*(saveptr+1) == '\"'){
+                delims = "\"\n\r";
+                saveptr++;
+            }
+            else {
+                delims = " \t\n\r";
+            }
+        }
+        else if(*saveptr == '\t'){
+            if (*(saveptr+1) == '\"'){
+                delims = "\"\n\r";
+                saveptr++;
+            }
+            else {
+                delims = " \t\n\r";
+            }
         }
         else {
-            delims = " \t\n\r";
+            if (*saveptr == '\"'){
+                delims = "\"\n\r";
+            }
+            else {
+                delims = " \t\n\r";
+            }        
         }
+
 
         token = strtok_r(NULL, delims, &saveptr);
         
@@ -147,7 +175,7 @@ int inputParser(token scanned_input[]){
 
 
     if (scanned_input[0].type == GENERAL){
-        printf("Command not found\n");
+        printf("Invalid syntax\n");
         return 0;
     }
     for (int i=0;i<num_tokens;i++){
@@ -156,11 +184,15 @@ int inputParser(token scanned_input[]){
                 if (i == 0) { //if first token is # then the syntax of the other tokens doesn't matter
                     return 1;
                 }
-                else { // '#' token anywhere other than first  position is syntax error
+                else { // '#' token anywhere other than first position is syntax error
                     printf("Error: '#' must be first\n");
                     return 0;
                 }
             case BANG :
+                if (num_tokens == 1){
+                    printf("Error: no command entered\n");
+                    return 0;
+                }
                 if (i != 0) {  // '!' token anywhere other than first  position is syntax error
                     printf("Error: '!' must be first\n");
                     return 0;
@@ -226,7 +258,14 @@ int inputParser(token scanned_input[]){
                     }
                 }
             case VARNAME :
-                if (((scanned_input[i].value[0] < 'A') || (scanned_input[i].value[0] > 'z')) && (scanned_input[i].value[0] != '$')){
+                if ((scanned_input[i].value[0] < 'A') || (scanned_input[i].value[0] > 'z')){
+                    printf("Invalid variable name\n");
+                    return 0;
+                }
+            case SUBSTITUTE :
+
+                // same as standard varname, but ignoring the first '$' character
+                if ((scanned_input[i].value[1] < 'A') || (scanned_input[i].value[1] > 'z')){
                     printf("Invalid variable name\n");
                     return 0;
                 }

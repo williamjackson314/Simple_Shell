@@ -11,3 +11,5 @@ File list:
 Project description:
 
 Special features/ limitations: 
+    -Commands must be entered with only one space or one tab between each token
+    -Must not enter space or tab as first character
