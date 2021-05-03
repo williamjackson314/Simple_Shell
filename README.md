@@ -7,6 +7,8 @@ Group members: Todd Jackson, Evan Wells
 File list:
     -main.c
     -dieWithError.c
+    -ScannerAndParser.c
+    -Utilities.h
 
 Project description:
 
