@@ -10,7 +10,6 @@
 void dieWithError(char *error); 
 
 #define MAX_INPUT_SIZE 256
-#define TOKEN_STRUCT_SIZE 260
 
 int available_variable_space = 10;
 int num_tokens = 0;
@@ -22,7 +21,7 @@ typedef struct variable{
 
 } variable;
 
-typedef enum tokentype{ HASH, BANG, EQUALS, CD, LV, QUIT, UNSET, INFROM, OUTTO, VARNAME, GENERAL } tokentype;
+typedef enum tokentype{ HASH, BANG, EQUALS, CD, LV, QUIT, UNSET, INFROM, OUTTO, SUBSTITUTE, VARNAME, GENERAL } tokentype;
 
 typedef struct token{
 
@@ -51,14 +50,22 @@ token *inputScanner(char *input){
 
     int index = 0;  
 
-    const char *delims = " \t\n\r";
+    const char *delims;
+    char *saveptr;
     char *token;
     char *prev_token = '\0';
 
-    token = strtok(input_cpy, delims);
+    if (input_cpy[0] == '\"'){
+        delims = "\"\n\r";
+    }
+    else {
+        delims = " \t\n\r";
+    }
+
+    token = strtok_r(input_cpy, delims, &saveptr);
 
     while (token != NULL){
-        
+
         if (strcmp(token, "#") == 0){
             type = HASH;
         }
@@ -94,7 +101,7 @@ token *inputScanner(char *input){
         }
         else {
             if (token[0] == '$'){
-                type = VARNAME;
+                type = SUBSTITUTE;
             }
             else{
                 prev_token = token;
@@ -106,8 +113,15 @@ token *inputScanner(char *input){
         strcpy(tokenized_input[index].value, token);
 
         index += 1;
+        
+        if (*saveptr == '\"'){
+            delims = "\"\n\r";
+        }
+        else {
+            delims = " \t\n\r";
+        }
 
-        token = strtok(NULL, delims);
+        token = strtok_r(NULL, delims, &saveptr);
         
     } 
  
@@ -189,7 +203,6 @@ int inputParser(token scanned_input[]){
                     printf("Cannot unset built-in variable\n");
                     return 0;
                 }
-                if ()
             case INFROM :
                 if (i == num_tokens-1){
                     printf("Please enter infrom file\n");
@@ -213,7 +226,7 @@ int inputParser(token scanned_input[]){
                     }
                 }
             case VARNAME :
-                if ((scanned_input[i].value[0] < 'A') || (scanned_input[i].value[0] > 'z') && (scanned_input[i].value[0] != '$')){
+                if (((scanned_input[i].value[0] < 'A') || (scanned_input[i].value[0] > 'z')) && (scanned_input[i].value[0] != '$')){
                     printf("Invalid variable name\n");
                     return 0;
                 }
@@ -366,10 +379,6 @@ char* cd(char *path){
     return getcwd(NULL, PATH_MAX);
 }
 
-void quit(){
-
-    exit(0);
-}
 
 int main(){
 
@@ -377,7 +386,7 @@ int main(){
     DIR *directory;
     struct dirent *de;
     char *PATH = "/usr/bin"; // in testing, /bin:/usr/bin did not exist; using path "/usr/bin" executed programs properly
-    char *CWD = getcwd(NULL, PATH_MAX);
+    char *CWD = '\0';
     char *PS = "> ";
     char usr_input[MAX_INPUT_SIZE];
     int is_valid;
@@ -390,20 +399,30 @@ int main(){
     dictionary = (variable *)calloc(available_variable_space, sizeof(variable));
 
     for(;;){
+        
+        if (feof(stdin)){
+	        printf("\n");
+	        exit(0);
+        }
+
+        printf("%s", PS);
         fgets(usr_input, MAX_INPUT_SIZE, stdin);
         input_tokens = inputScanner(usr_input);
         
         if (num_tokens > 0){
             // is_valid = inputParser(input_tokens);
             // if (is_valid){
-            //     //execute command
+            //      //execute command
+            // } else {
+            //     exit(0);
             // }
         }
         else {
-            printf("Please enter a command\n");
+            printf("%s", PS);
         }
     }
-
+    
     free(dictionary);
+
     return 0;
 }
