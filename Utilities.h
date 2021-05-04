@@ -1,4 +1,13 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/types.h>
+#include <dirent.h>
 #include <signal.h>
+#include <unistd.h>
+#include <errno.h>
+#include <signal.h>
+#include <fcntl.h>
 
 void dieWithError(char *error); 
 
@@ -6,6 +15,8 @@ void dieWithError(char *error);
 
 int available_variable_space;
 int num_tokens;
+
+typedef void (*sighandler_t)(int);
 
 typedef struct variable{
 
