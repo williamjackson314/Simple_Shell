@@ -184,12 +184,10 @@ int main(){
         input_tokens = inputScanner(usr_input);
         
         if (num_tokens > 0){
-            // is_valid = inputParser(input_tokens);
-            // if (is_valid){
-            //      //execute command
-            // } else {
-            //     exit(0);
-            // }
+            is_valid = inputParser(input_tokens);
+            if (is_valid){
+                 //execute command
+            } 
         }
         else {
             printf("%s", PS);
