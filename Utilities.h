@@ -36,7 +36,9 @@ typedef struct token{
 
 token *inputScanner(char *input);
 int inputParser(token scanned_input[]);
-void execute( char *path, char *command, char *args[]);
+void execute( char *path, char *command, char *args[], char *in, char *out);
+void inFrom(char *file_name);
+void outTo(char *file_name);
 sighandler_t setSignalHandler(int signum, sighandler_t handler);
 int insertVariable(variable *dictionary, char *name, char *value);
 char* searchVariable(variable *dictionary, char *name);
