@@ -1,2 +1,2 @@
 make:
-	gcc -Wall -g dieWithError.c ScannerAndParser.c main.c
+	gcc -Wall -g -o simpsh dieWithError.c ScannerAndParser.c main.c
