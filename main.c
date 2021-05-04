@@ -1,15 +1,6 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/types.h>
-#include <dirent.h>
-#include <signal.h>
-#include <unistd.h>
-#include <errno.h>
 #include "Utilities.h"
-#include "ScannerAndParser.c"
 
-available_variable_space = 10;
+int available_variable_space = 10;
 
 /**
  * @brief For use after parent has forked, 
@@ -21,10 +12,43 @@ available_variable_space = 10;
  * @param args 
  * @param envp  
  */
-void execute( char *path, char *command, char *args[], char envp*[]) {
+void execute(char *path, char *command, char *args[], char *in, char *out) {
     cd(path);
-    int status = execve(command, args, envp);
-    if (status == -1) dieWithError("Error: Could not execute program\n");
+    int status; 
+    if (fork() == 0) { // child process
+        if(in != NULL) inFrom(in);
+        if(out != NULL) outTo(out);
+        execve(command, args, NULL);
+    } else{ // parent process 
+        wait(&status);
+        if (status < 0) dieWithError("Error: Could not execute program\n");
+    }
+}
+
+/**
+ * @brief IO redirection simulating "<"
+ *        Redirects STDIN to read from file_name
+ * 
+ * @param file_name 
+ */
+void inFrom(char *file_name){
+    int file = open(file_name, O_RDONLY, 0777);
+    if (file < 0) dieWithError("Could not read infrom specified file\n");
+    dup2(file, STDIN_FILENO);
+    close(file);
+}
+
+/**
+ * @brief IO redirection simulating ">"
+ *        Redirects STDOUT to read from file_name
+ * 
+ * @param file_name 
+ */
+void outTo(char *file_name){
+    int file = open(file_name, O_WRONLY | O_CREAT, 0777);
+    if (file < 0) dieWithError("Could not write outto specified file\n");
+    dup2(file, STDOUT_FILENO);
+    close(file);
 }
 
 /**
@@ -36,7 +60,6 @@ void execute( char *path, char *command, char *args[], char envp*[]) {
  * @return sighandler_t 
  */
 sigset_t mask, prev;
-typedef void (*sighandler_t)(int);
 sighandler_t setSignalHandler(int signum, sighandler_t handler){
     struct sigaction action, old_action;
 
@@ -173,8 +196,7 @@ int main(){
     dictionary = (variable *)calloc(available_variable_space, sizeof(variable));
 
     for(;;){
-        
-        if (feof(stdin)){
+        if (feof(stdin)){ // Detects ^D and exits
 	        printf("\n");
 	        exit(0);
         }
@@ -187,11 +209,16 @@ int main(){
             is_valid = inputParser(input_tokens);
             if (is_valid){
                  //execute command
+<<<<<<< HEAD
             } 
         }
         else {
             printf("%s", PS);
+=======
+            }
+>>>>>>> 275a8324ef587596a44f67c6befbdbce1dac59ed
         }
+        
     }
     
     free(dictionary);

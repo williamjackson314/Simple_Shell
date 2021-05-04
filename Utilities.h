@@ -1,4 +1,13 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/types.h>
+#include <dirent.h>
 #include <signal.h>
+#include <unistd.h>
+#include <errno.h>
+#include <signal.h>
+#include <fcntl.h>
 
 void dieWithError(char *error); 
 
@@ -6,6 +15,8 @@ void dieWithError(char *error);
 
 int available_variable_space;
 int num_tokens;
+
+typedef void (*sighandler_t)(int);
 
 typedef struct variable{
 
@@ -25,7 +36,9 @@ typedef struct token{
 
 token *inputScanner(char *input);
 int inputParser(token scanned_input[]);
-void execute( char *path, char *command, char *args[]);
+void execute( char *path, char *command, char *args[], char *in, char *out);
+void inFrom(char *file_name);
+void outTo(char *file_name);
 sighandler_t setSignalHandler(int signum, sighandler_t handler);
 int insertVariable(variable *dictionary, char *name, char *value);
 char* searchVariable(variable *dictionary, char *name);
