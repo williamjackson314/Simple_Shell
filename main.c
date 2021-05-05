@@ -209,14 +209,7 @@ int main(){
             is_valid = inputParser(input_tokens);
             if (is_valid){
                  //execute command
-<<<<<<< HEAD
-            } 
-        }
-        else {
-            printf("%s", PS);
-=======
             }
->>>>>>> 275a8324ef587596a44f67c6befbdbce1dac59ed
         }
         
     }

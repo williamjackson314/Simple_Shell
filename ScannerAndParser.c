@@ -26,8 +26,14 @@ token *inputScanner(char *input){
     char *token;
     char *prev_token = '\0';
 
-    // if first character is space or tab, exit shell
-    if ((input_cpy[0] == ' ') || (input_cpy[0] == '\t')) dieWithError("Space/Tab may not be first character");
+    /* If space or tab is first character, set first token to indicate error. 
+        GENERAL type set, so the syntax function will flag the input as syntactically invalid*/
+    if ((input_cpy[0] == ' ') || (input_cpy[0] == '\t')){
+        tokenized_input[0].type = GENERAL;
+        strcpy(tokenized_input[0].value, "Error");
+        num_tokens++;
+        return tokenized_input;
+    }
 
     if (input_cpy[0] == '\"'){
         delims = "\"\n\r";
@@ -52,7 +58,10 @@ token *inputScanner(char *input){
             
             if (index > 0){
                 if (tokenized_input[index-1].type != GENERAL){
-                    return tokenized_input; //syntax error detected, do not read any more input
+                    tokenized_input[0].type = GENERAL;
+                    strcpy(tokenized_input[0].value, "Error");
+                    num_tokens++;
+                    return tokenized_input;
                 }
                 else {
                     tokenized_input[index-1].type = prev_type; 
@@ -127,13 +136,13 @@ token *inputScanner(char *input){
         
     } 
  
-    for (int i=0;i<index;i++){
-        printf("Type: %d\n", tokenized_input[i].type);
-        printf("Value: %s\n", tokenized_input[i].value);
-    }
+    // for (int i=0;i<index;i++){
+    //     printf("Type: %d\n", tokenized_input[i].type);
+    //     printf("Value: %s\n", tokenized_input[i].value);
+    // }
 
     num_tokens += index; //index is incremented everytime a token is created
-    printf("Num tokens = %d\n", num_tokens);
+    // printf("Num tokens = %d\n", num_tokens);
     return tokenized_input;
 }
 
@@ -148,11 +157,6 @@ token *inputScanner(char *input){
  */
 int inputParser(token scanned_input[]){
 
-
-    if (scanned_input[0].type == GENERAL){
-        printf("Invalid syntax\n");
-        return 0;
-    }
     for (int i=0;i<num_tokens;i++){
         switch (scanned_input[i].type){
             case HASH :
@@ -163,15 +167,17 @@ int inputParser(token scanned_input[]){
                     printf("Error: '#' must be first\n");
                     return 0;
                 }
+                break;
             case BANG :
                 if (num_tokens == 1){
-                    printf("Error: no command entered\n");
+                    printf("Error: no command entered to execute\n");
                     return 0;
                 }
                 if (i != 0) {  // '!' token anywhere other than first  position is syntax error
                     printf("Error: '!' must be first\n");
                     return 0;
                 }
+                break;
             case EQUALS : 
                 if (i == 0){ //make sure = is not first token
                     printf("Variable name must come before '='\n");
@@ -197,19 +203,21 @@ int inputParser(token scanned_input[]){
                     printf("Too many arguments for setting variable\n");
                     return 0;
                 }
+                break;
             case CD :
                 if (num_tokens == 1){
                     printf("Please enter a directory name\n");
                     return 0;
                 }
                 else if (num_tokens > 2){
-                    printf("Too many arguments to \"cd\"");
+                    printf("Too many arguments to \"cd\"\n");
                     return 0;
                 }
                 if (i != 0){
-                    printf("Error: \"cd\" must be first");
+                    printf("Error: \"cd\" must be first\n");
                     return 0;
                 }
+                break;
             case LV :
                 if (num_tokens != 1){
                     printf("Invalid syntax: \"lv\"\n");
@@ -220,6 +228,7 @@ int inputParser(token scanned_input[]){
                     printf("Invalid syntax, could not quit\n");
                     return 0;
                 }
+                break;
             case UNSET :
                 if (i != 0){
                     printf("\"unset\" must come first\n");
@@ -229,15 +238,20 @@ int inputParser(token scanned_input[]){
                     printf("Incorrect number of arguments to \"unset\"");
                     return 0;
                 }
-                if (scanned_input[i+1].type != VARNAME){
-                    printf("Must enter valid variable to unset\n");
+                if (scanned_input[i+1].type != GENERAL){
+                    printf("Cannot unset built-in commands\n");
                     return 0;
                 }
                 if ( strcmp(scanned_input[i].value, "PATH") || strcmp(scanned_input[i].value, "CWD") || strcmp(scanned_input[i].value, "PS") == 0){
                     printf("Cannot unset built-in variable\n");
                     return 0;
                 }
+                break;
             case INFROM :
+                if ((i == 0) || (i < 2)){ //infrom: must not be first token and must be at least third token
+                    printf("Invalid syntax: \"infrom:\" position\n");
+                    return 0;
+                }
                 if (i == num_tokens-1){
                     printf("Must enter infrom file\n");
                     return 0;
@@ -248,16 +262,12 @@ int inputParser(token scanned_input[]){
                         return 0;
                     }
                 }
-                if ((i == 0) || (i < 2)){ //infrom: must not be first token and must be at least third token
-                    printf("Invalid syntax: \"infrom:\" position\n");
-                    return 0;
-                }
-                // If infrom: not the second to last token and OUTTO not next
-                else if ( (i != (num_tokens-2)) && (scanned_input[i+1].type != OUTTO) ){
-                    printf("Invalid syntax: \"infrom:\" position\n");
-                    return 0;
-                }
+                break;
             case OUTTO :
+                if ((i == 0) || (i < 2)){ //outto: must not be first token and must be at least third token
+                    printf("Invalid syntax: \"outto:\" position\n");
+                    return 0;
+                }
                 if (i == num_tokens-1){
                     printf("Must enter file to redirect to\n");
                     return 0;
@@ -268,10 +278,7 @@ int inputParser(token scanned_input[]){
                         return 0;
                     }
                 }
-                if ((i == 0) || (i < 2)){ //outto: must not be first token and must be at least third token
-                    printf("Invalid syntax for '!' command\n");
-                    return 0;
-                }
+                break;
             case SUBSTITUTE :
 
                 // same as standard varname, but ignoring the first '$' character
@@ -279,6 +286,7 @@ int inputParser(token scanned_input[]){
                     printf("Invalid variable name\n");
                     return 0;
                 }
+                break;
             case VARNAME :
                 if ((scanned_input[i].value[0] < 'A') || (scanned_input[i].value[0] > 'z')){
                     printf("Invalid variable name\n");
@@ -288,8 +296,17 @@ int inputParser(token scanned_input[]){
                     printf("Too many arguments for setting variable\n");
                     return 0;
                 }
+                break;
+            case GENERAL : 
+                if (i == 0){
+                    printf("Invalid command entered\n");
+                    return 0;
+                }
+                break;
+            default :
+                printf("Syntax Error\n");
+                return 0;
         }
-
     }
     return 1;
 }
