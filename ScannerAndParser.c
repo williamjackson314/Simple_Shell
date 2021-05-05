@@ -1,7 +1,4 @@
-#include <stdlib.h>
-#include <stdio.h>
 #include "Utilities.h"
-
 
 /**
  * @brief Takes users input, converts it to an array of token structs,
