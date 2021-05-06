@@ -13,7 +13,6 @@ void dieWithError(char *error);
 
 #define MAX_INPUT_SIZE 256
 
-int available_variable_space;
 int num_tokens;
 
 typedef void (*sighandler_t)(int);

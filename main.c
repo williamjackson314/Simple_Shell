@@ -10,7 +10,6 @@ int available_variable_space = 10;
  * @param path 
  * @param command 
  * @param args 
- * @param envp  
  */
 void execute(char *path, char *command, char *args[], char *in, char *out) {
     cd(path);
@@ -49,6 +48,17 @@ void outTo(char *file_name){
     if (file < 0) dieWithError("Could not write outto specified file\n");
     dup2(file, STDOUT_FILENO);
     close(file);
+}
+
+void parse(char *line, char **argv){
+    while (*line != '\0'){
+        while (*line == ' ' || *line == '\n')
+            *line++ = '\0'; 
+        *argv++ = line;
+        while (*line != '\0' && *line != ' ' && *line != '\n')
+            line++;
+    }
+    *argv = NULL;
 }
 
 /**
@@ -114,8 +124,12 @@ int insertVariable(variable *dictionary, char *name, char *value){
  */
 char* searchVariable(variable *dictionary, char *name){
     for (int i; i < available_variable_space; i++){
-        if (dictionary[i].name == name)
-            return dictionary[i].value;
+        if (dictionary[i].name == name){
+            char *ret;
+            ret = malloc(MAX_INPUT_SIZE);
+            ret = dictionary[i].value;
+            return ret;
+        }
     }
     return NULL;
 }
@@ -133,6 +147,7 @@ int unsetVariable( variable *dictionary, char *name){
         if (dictionary[i].name == name){
             dictionary[i].name = NULL;
             dictionary[i].value = NULL;
+            printf("Unset %s successfully\n", name);
             return 0;
         }
     }
@@ -149,11 +164,13 @@ int unsetVariable( variable *dictionary, char *name){
  */
 void printVariables(variable *dictionary, char* PATH, char* CWD, char* PS){
     // prints predefined variables 
-    printf("Predefined Variables\n");
+    printf("\nPredefined Variables\n");
     printf("--------------------\n");
     printf("PATH: %s\n", PATH);
-    printf("CWD: %s\n", CWD);
-    printf("PS: %s\n", PS);
+    printf("CWD:  %s\n", CWD);
+    printf("PS:  %s\n", PS);
+    printf("--------------------\n");
+
 
     // prints user defined variables 
     printf("User Defined Variables\n");
@@ -162,6 +179,7 @@ void printVariables(variable *dictionary, char* PATH, char* CWD, char* PS){
         if(dictionary[i].name != NULL) 
             printf("%s: %s\n", dictionary[i].name, dictionary[i].value);
     }
+    printf("----------------------\n");
 }
 
 /**
@@ -184,17 +202,18 @@ int main(){
     struct dirent *de;
     char *PATH = "/usr/bin"; // in testing, /bin:/usr/bin did not exist; using path "/usr/bin" executed programs properly
     char *CWD = '\0';
-    char *PS = "> ";
+    char *PS = "\033[0;32m >\033[0m ";
     char usr_input[MAX_INPUT_SIZE];
     int is_valid;
     token *input_tokens;
     input_tokens = (token *)malloc(MAX_INPUT_SIZE * sizeof(token));
 
-    if (getcwd(CWD, PATH_MAX) == NULL) dieWithError("getcwd error");
-
+    if (getcwd(CWD, PATH_MAX) == NULL) dieWithError("getcwd error\n");
+    else CWD = getcwd(NULL, PATH_MAX);
     variable *dictionary;
     dictionary = (variable *)calloc(available_variable_space, sizeof(variable));
 
+    char *var_name, *var_val;
     for(;;){
         if (feof(stdin)){ // Detects ^D and exits
 	        printf("\n");
@@ -208,17 +227,72 @@ int main(){
         if (num_tokens > 0){
             is_valid = inputParser(input_tokens);
             if (is_valid){
-                 //execute command
-<<<<<<< HEAD
-            } 
-        }
-        else {
-            printf("%s", PS);
-=======
+                for (int i = 0; i < num_tokens; i++){ // substitute any $values 
+                    if(input_tokens[i].type == SUBSTITUTE){
+                        char *name = input_tokens[i].value + 1;
+                        char *value = searchVariable(dictionary, name);
+                        if(value != NULL)
+                            strcpy(input_tokens[i].value, value);
+                        else printf("Unable to substitute for %s\n", name);
+                    }
+                }
+                if(input_tokens[0].type == QUIT){
+                    printf("\n");
+                    exit(0);
+
+                } else if(input_tokens[0].type == CD){
+                    CWD = cd(input_tokens[1].value);
+
+                } else if(input_tokens[0].type == BANG){
+                    char *in = NULL, *out = NULL;
+                    int argCount = num_tokens; // subtract 2 for "!" and "command"
+                    for(int i = 2; i < num_tokens; i++){ // check for inFrom/outTo parameters 
+                        if (input_tokens[i].type == INFROM) {
+                            in = input_tokens[i].value;
+                            argCount -= 1;
+                        }
+                        if (input_tokens[i].type == OUTTO){ 
+                            out = input_tokens[i].value;
+                            argCount -= 1;
+                        }
+                    }
+                    char raw[MAX_INPUT_SIZE];
+                    memset(raw, 0, sizeof(raw));
+                    char *argv[MAX_INPUT_SIZE];
+                    if (argCount > 0){
+                        for(int i = 1; i < num_tokens; i++){
+                            strcat(raw, input_tokens[i].value);
+                            strcat(raw, " ");
+                        }                        
+                        printf("final: %s\n", raw);
+                        parse(raw, argv);
+                    }
+                    
+                    execute(PATH, input_tokens[1].value, argv, in, out);
+
+                } else if(input_tokens[0].type == UNSET){
+                    unsetVariable(dictionary, input_tokens[1].value);
+                
+                } else if(input_tokens[0].type == VARNAME){
+                    var_name = input_tokens[0].value;
+                    var_val = input_tokens[2].value;
+                    printf("VAR NAME: %s \n", var_name);
+                    printf("VAR VAL:  %s \n", var_val);
+                    if(!(strcmp("PATH", var_name))){
+                        PATH = var_val;
+                    } else if(!(strcmp(var_name, "PS"))){
+                        PS = var_val;
+                    } else {
+                        insertVariable(dictionary, var_name, var_val);
+                        printVariables(dictionary, PATH, CWD, PS);
+                    }
+
+                } else if(input_tokens[0].type == LV){
+                    printVariables(dictionary, PATH, CWD, PS);
+
+                }
             }
->>>>>>> 275a8324ef587596a44f67c6befbdbce1dac59ed
         }
-        
     }
     
     free(dictionary);
